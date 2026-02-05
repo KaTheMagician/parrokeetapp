@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Audio Mirror (Parrot) v1.2 — Sound Bites Polished</title>
+  <style>
+    :root{
+      --bg:#0b0d12; --panel:#111522; --text:#e8ecff; --muted:#a8b0d6;
+      --accent:#6aa7ff; --danger:#ff5c7a; --ok:#5dffb3; --border:#232a41;
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    [data-theme="light"]{
+      --bg:#f6f7fb; --panel:#ffffff; --text:#111427; --muted:#5a6287;
+      --accent:#2f6bff; --danger:#d1284a; --ok:#12a86b; --border:#e6e9f6;
+      --shadow: 0 14px 40px rgba(18,28,80,.10);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(106,167,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 110% 10%, rgba(93,255,179,.10), transparent 50%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:24px;
+    }
+    .wrap{width:min(980px, 100%); display:grid; gap:14px;}
+    .top{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; flex-direction:column; gap:4px;}
+    .brand h1{margin:0; font-size:18px; letter-spacing:.2px}
+    .brand p{margin:0; color:var(--muted); font-size:13px}
+    .row{display:grid; grid-template-columns: 1.2fr .8fr; gap:14px}
+    @media (max-width: 860px){ .row{grid-template-columns: 1fr;} }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)) , var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow: var(--shadow);
+      padding:16px;
+    }
+    .controls{display:grid; gap:12px}
+    .btns{display:flex; gap:10px; flex-wrap:wrap}
+    button{
+      appearance:none; border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .06s ease, border-color .12s ease, background .12s ease;
+      font-weight:600; font-size:13px;
+    }
+    button:hover{border-color: rgba(106,167,255,.45)}
+    button:active{transform: translateY(1px)}
+    button.primary{
+      background: linear-gradient(180deg, rgba(106,167,255,.25), rgba(106,167,255,.10));
+      border-color: rgba(106,167,255,.45);
+    }
+    button.danger{
+      background: linear-gradient(180deg, rgba(255,92,122,.25), rgba(255,92,122,.10));
+      border-color: rgba(255,92,122,.45);
+    }
+    button.good{
+      background: linear-gradient(180deg, rgba(93,255,179,.18), rgba(93,255,179,.06));
+      border-color: rgba(93,255,179,.40);
+    }
+    button.ghost{background:transparent}
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    @media (max-width: 520px){ .grid2{grid-template-columns:1fr} }
+    label{display:flex; flex-direction:column; gap:7px; font-size:12px; color:var(--muted)}
+    input[type="range"]{width:100%}
+    select, input[type="number"], input[type="file"]{
+      width:100%;
+      background: rgba(255,255,255,.03);
+      border:1px solid var(--border);
+      color:var(--text);
+      padding:10px 10px;
+      border-radius:12px;
+      outline:none;
+    }
+    .hint{font-size:12px; color:var(--muted); line-height:1.35}
+    .status{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background: rgba(255,255,255,.02);
+    }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.02);
+      font-size:12px; color:var(--muted);
+    }
+    .dot{width:10px; height:10px; border-radius:50%}
+    .dot.off{background: rgba(255,255,255,.18)}
+    .dot.on{background: var(--ok); box-shadow: 0 0 0 6px rgba(93,255,179,.15)}
+    .dot.rec{background: var(--danger); box-shadow: 0 0 0 6px rgba(255,92,122,.12)}
+    .meter{
+      height:10px; border-radius:999px; overflow:hidden;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+    .fill{height:100%; width:0%}
+    .fill.level{background: linear-gradient(90deg, rgba(106,167,255,.65), rgba(93,255,179,.65))}
+    .fill.low{background: linear-gradient(90deg, rgba(255,92,122,.55), rgba(106,167,255,.55))}
+    .log{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:12px; color:var(--muted);
+      max-height:300px; overflow:auto;
+      padding:12px; border-radius:14px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      white-space:pre-wrap;
+    }
+    [data-theme="light"] .log{background: rgba(0,0,0,.05)}
+    .small{font-size:11px; color:var(--muted)}
+    .warn{color:#ffcf6a}
+    .ok{color:var(--ok)}
+    .inlineRow{display:flex; gap:10px; align-items:center}
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <h1>Audio Mirror (Parrot) v1.2</h1>
+        <p>Sound Bites polished (ms/sec controls) • Rumble emphasis • Optional SFX layer</p>
+      </div>
+      <div class="btns">
+        <button id="themeBtn" class="ghost">Toggle Theme</button>
+        <button id="testBeepBtn" class="ghost">Test Output</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <div class="controls">
+          <div class="status">
+            <div class="pill"><span class="dot off" id="micDot"></span><span id="micText">Mic: idle</span></div>
+            <div class="pill"><span class="dot off" id="recDot"></span><span id="recText">Detector: idle</span></div>
+            <div class="pill"><span>Queue:</span> <strong id="qCount">0</strong></div>
+          </div>
+
+          <div class="grid2">
+            <label>
+              Mode
+              <select id="mode">
+                <option value="live">Live Mirror (near-instant)</option>
+                <option value="bites" selected>Sound Bites (reactive clips)</option>
+              </select>
+            </label>
+
+            <label>
+              Speaker-safe EQ (reduces squeal band)
+              <select id="safeEq">
+                <option value="off">Off</option>
+                <option value="on" selected>On</option>
+              </select>
+              <span class="small">High-pass + notch + low-pass + limiter.</span>
+            </label>
+          </div>
+
+          <div class="grid2">
+            <label>
+              Output volume
+              <input id="outGain" type="range" min="0" max="2.5" step="0.01" value="1.0" />
+              <span class="small"><span id="outGainVal">1.00</span>x</span>
+            </label>
+
+            <label>
+              Input sensitivity (mic pre-gain)
+              <input id="inGain" type="range" min="1" max="25" step="0.1" value="10" />
+              <span class="small"><span id="inGainVal">10.0</span>x</span>
+            </label>
+          </div>
+
+          <div class="grid2">
+            <label>
+              Rumble boost (low shelf)
+              <input id="rumble" type="range" min="-12" max="24" step="0.5" value="14" />
+              <span class="small"><span id="rumbleVal">14.0</span> dB</span>
+            </label>
+
+            <label>
+              Low-mid punch (peaking)
+              <input id="punch" type="range" min="-12" max="18" step="0.5" value="6" />
+              <span class="small"><span id="punchVal">6.0</span> dB</span>
+            </label>
+          </div>
+
+          <div class="grid2">
+            <label>
+              Detector threshold (lower = more sensitive)
+              <input id="thresh" type="range" min="0.002" max="0.25" step="0.001" value="0.03" />
+              <span class="small">RMS: <span id="threshVal">0.030</span></span>
+            </label>
+
+            <label>
+              Silence stop (ms)
+              <input id="silenceMs" type="range" min="120" max="1800" step="10" value="350" />
+              <span class="small"><span id="silenceMsVal">350</span> ms</span>
+            </label>
+          </div>
+
+          <!-- NEW: gap + clip controls with ms/sec -->
+          <div class="grid2">
+            <label>
+              Playback gap
+              <div class="inlineRow">
+                <input id="gapVal" type="number" min="0" max="6000" step="10" value="150" />
+                <select id="gapUnit" style="width:120px">
+                  <option value="ms" selected>ms</option>
+                  <option value="s">sec</option>
+                </select>
+              </div>
+              <span class="small">Try 0–200ms for “live” feel. (Cap 6000ms)</span>
+            </label>
+
+            <label>
+              Max clip length
+              <div class="inlineRow">
+                <input id="clipVal" type="number" min="50" max="6000" step="10" value="300" />
+                <select id="clipUnit" style="width:120px">
+                  <option value="ms" selected>ms</option>
+                  <option value="s">sec</option>
+                </select>
+              </div>
+              <span class="small">Try 200–800ms. (Cap 6000ms)</span>
+            </label>
+          </div>
+
+          <div class="grid2">
+            <label>
+              Sustained chopping
+              <select id="chop">
+                <option value="on" selected>On (keeps it reactive)</option>
+                <option value="off">Off</option>
+              </select>
+              <span class="small">Long sounds become rapid bite-chunks.</span>
+            </label>
+
+            <label>
+              Monitor mic in Sound Bites mode
+              <select id="monitorBites">
+                <option value="off" selected>Off (recommended)</option>
+                <option value="on">On (feedback risk)</option>
+              </select>
+              <span class="small">Off is best for speakers.</span>
+            </label>
+          </div>
+
+          <!-- OPTIONAL SFX layer (still here, but not the focus) -->
+          <div class="grid2">
+            <label>
+              Load SFX file (mp3/wav/ogg/webm)
+              <input id="sfxFile" type="file" accept="audio/*" />
+              <span class="small"><span id="sfxStatus">No SFX loaded.</span></span>
+            </label>
+            <label>
+              SFX mode
+              <select id="sfxMode">
+                <option value="manual" selected>Manual button only</option>
+                <option value="trigger">Trigger on rumble events</option>
+              </select>
+              <span class="small">Lockout prevents self-trigger.</span>
+            </label>
+          </div>
+
+          <div class="grid2">
+            <label>
+              SFX trigger cooldown (seconds)
+              <input id="sfxCooldown" type="number" min="0.5" max="60" step="0.5" value="10" />
+            </label>
+            <label>
+              SFX length (seconds from start)
+              <input id="sfxLen" type="number" min="0.5" max="10" step="0.1" value="3.0" />
+            </label>
+          </div>
+
+          <div class="grid2">
+            <label>
+              Mic lockout during SFX playback
+              <select id="lockout">
+                <option value="on" selected>On</option>
+                <option value="off">Off</option>
+              </select>
+            </label>
+            <label>
+              (Tip)
+              <div class="hint">
+                For outdoor speaker: use <b>Sound Bites</b>, set <b>clip=300ms</b>, <b>gap=0–150ms</b>, keep <b>monitor off</b>.
+              </div>
+            </label>
+          </div>
+
+          <div class="btns">
+            <button id="startBtn" class="primary">Start</button>
+            <button id="stopBtn" class="danger" disabled>Stop</button>
+            <button id="clearBtn" class="ghost">Clear Queue</button>
+            <button id="goofyBtn" class="good" disabled>GOOFY!</button>
+          </div>
+
+          <div class="hint">
+            <span class="warn">Note:</span> Live mode on speakers will always be risky. Sound Bites is the “speaker-safe” path.
+          </div>
+
+          <div>
+            <div class="small">Level</div>
+            <div class="meter"><div class="fill level" id="levelFill"></div></div>
+          </div>
+          <div>
+            <div class="small">Low-rumble energy</div>
+            <div class="meter"><div class="fill low" id="lowFill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hint" style="margin-bottom:10px">Log</div>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const logEl = $("log");
+  function log(msg){
+    const t = new Date().toLocaleTimeString();
+    logEl.textContent += `[${t}] ${msg}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function setDot(dot, state){
+    dot.classList.remove("off","on","rec");
+    dot.classList.add(state);
+  }
+  function toMs(val, unit){
+    const n = Math.max(0, Number(val) || 0);
+    return unit === "s" ? Math.round(n * 1000) : Math.round(n);
+  }
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  // Audio state
+  let stream = null;
+  let ctx = null;
+  let source = null;
+
+  // Chain
+  let inGainNode = null;
+  let lowShelf = null;
+  let punchEQ = null;
+
+  // Speaker-safe extras (optional)
+  let hp = null;
+  let lp = null;
+  let notch = null;
+  let limiter = null;
+
+  let outGainNode = null;
+
+  // Analysers
+  let analyser = null;
+  let freqAnalyser = null;
+  let detectorTimer = null;
+
+  // MediaRecorder
+  let recorder = null;
+  let chunks = [];
+  let isRecording = false;
+  let recStartMs = 0;
+  let lastHotMs = 0;
+  let lastHotFlag = false;
+
+  // Playback queue
+  const queue = [];
+  let isPlaying = false;
+
+  // Meter smoothing
+  let lastRms = 0;
+  let lastLow = 0;
+
+  // SFX
+  let sfxBuffer = null;
+  let sfxLastFire = 0;
+  let sfxCurrentlyPlaying = false;
+
+  const ui = {
+    mode: $("mode"),
+    safeEq: $("safeEq"),
+    outGain: $("outGain"),
+    inGain: $("inGain"),
+    rumble: $("rumble"),
+    punch: $("punch"),
+    thresh: $("thresh"),
+    silenceMs: $("silenceMs"),
+
+    gapVal: $("gapVal"),
+    gapUnit: $("gapUnit"),
+    clipVal: $("clipVal"),
+    clipUnit: $("clipUnit"),
+
+    chop: $("chop"),
+    monitorBites: $("monitorBites"),
+
+    sfxFile: $("sfxFile"),
+    sfxStatus: $("sfxStatus"),
+    sfxMode: $("sfxMode"),
+    sfxCooldown: $("sfxCooldown"),
+    sfxLen: $("sfxLen"),
+    lockout: $("lockout"),
+
+    outGainVal: $("outGainVal"),
+    inGainVal: $("inGainVal"),
+    rumbleVal: $("rumbleVal"),
+    punchVal: $("punchVal"),
+    threshVal: $("threshVal"),
+    silenceMsVal: $("silenceMsVal"),
+
+    micDot: $("micDot"),
+    recDot: $("recDot"),
+    micText: $("micText"),
+    recText: $("recText"),
+    qCount: $("qCount"),
+    levelFill: $("levelFill"),
+    lowFill: $("lowFill"),
+
+    startBtn: $("startBtn"),
+    stopBtn: $("stopBtn"),
+    clearBtn: $("clearBtn"),
+    themeBtn: $("themeBtn"),
+    testBeepBtn: $("testBeepBtn"),
+    goofyBtn: $("goofyBtn"),
+  };
+
+  function syncLabels(){
+    ui.outGainVal.textContent = (+ui.outGain.value).toFixed(2);
+    ui.inGainVal.textContent = (+ui.inGain.value).toFixed(1);
+    ui.rumbleVal.textContent = (+ui.rumble.value).toFixed(1);
+    ui.punchVal.textContent = (+ui.punch.value).toFixed(1);
+    ui.threshVal.textContent = (+ui.thresh.value).toFixed(3);
+    ui.silenceMsVal.textContent = String(Math.round(+ui.silenceMs.value));
+  }
+  syncLabels();
+
+  function updateQueueCount(){ ui.qCount.textContent = String(queue.length); }
+
+  function currentGapMs(){
+    return clamp(toMs(ui.gapVal.value, ui.gapUnit.value), 0, 6000);
+  }
+  function currentMaxClipMs(){
+    return clamp(toMs(ui.clipVal.value, ui.clipUnit.value), 50, 6000);
+  }
+
+  // ---------- Start/Stop ----------
+  async function start(){
+    try{
+      if (ctx) return;
+
+      log("Requesting microphone…");
+      setDot(ui.micDot, "off");
+      ui.micText.textContent = "Mic: requesting…";
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1
+        }
+      });
+
+      ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
+      source = ctx.createMediaStreamSource(stream);
+
+      inGainNode = ctx.createGain();
+
+      lowShelf = ctx.createBiquadFilter();
+      lowShelf.type = "lowshelf";
+      lowShelf.frequency.value = 120;
+
+      punchEQ = ctx.createBiquadFilter();
+      punchEQ.type = "peaking";
+      punchEQ.frequency.value = 220;
+      punchEQ.Q.value = 1.0;
+
+      outGainNode = ctx.createGain();
+
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+
+      freqAnalyser = ctx.createAnalyser();
+      freqAnalyser.fftSize = 1024;
+
+      // Base chain
+      source.connect(inGainNode);
+      inGainNode.connect(lowShelf);
+      lowShelf.connect(punchEQ);
+
+      punchEQ.connect(analyser);
+      punchEQ.connect(freqAnalyser);
+
+      applyAudioParams();
+      rebuildRouting();
+      setupRecorder();
+      primeSfxIfLoaded();
+
+      setDot(ui.micDot, "on");
+      ui.micText.textContent = "Mic: running";
+      ui.stopBtn.disabled = false;
+      ui.startBtn.disabled = true;
+
+      startDetectorLoop();
+      log("Started. (Sound Bites defaults: clip=300ms, gap=150ms)");
+    }catch(err){
+      log(`ERROR: ${err?.message || err}`);
+      stop();
+    }
+  }
+
+  function stop(){
+    try{
+      if (detectorTimer){ clearInterval(detectorTimer); detectorTimer = null; }
+      if (recorder && recorder.state !== "inactive"){ recorder.stop(); }
+      if (ctx){ ctx.close(); }
+    }catch(e){}
+
+    try{
+      if (stream){ stream.getTracks().forEach(t => t.stop()); }
+    }catch(e){}
+
+    stream = null; ctx = null; source = null;
+    inGainNode = null; lowShelf = null; punchEQ = null;
+    hp = null; lp = null; notch = null; limiter = null;
+    outGainNode = null;
+    analyser = null; freqAnalyser = null;
+    recorder = null; chunks = [];
+    isRecording = false; recStartMs = 0; lastHotMs = 0; lastHotFlag = false;
+    queue.length = 0; isPlaying = false;
+    lastRms = 0; lastLow = 0;
+    sfxCurrentlyPlaying = false;
+
+    setDot(ui.micDot, "off");
+    setDot(ui.recDot, "off");
+    ui.micText.textContent = "Mic: idle";
+    ui.recText.textContent = "Detector: idle";
+    ui.levelFill.style.width = "0%";
+    ui.lowFill.style.width = "0%";
+
+    ui.stopBtn.disabled = true;
+    ui.startBtn.disabled = false;
+    updateQueueCount();
+
+    log("Stopped.");
+  }
+
+  // ---------- Params ----------
+  function applyAudioParams(){
+    if (!ctx) return;
+    inGainNode.gain.value = +ui.inGain.value;
+    outGainNode.gain.value = +ui.outGain.value;
+    lowShelf.gain.value = +ui.rumble.value;
+    punchEQ.gain.value = +ui.punch.value;
+
+    if (ui.safeEq.value === "on"){
+      if (hp) hp.frequency.value = 80;
+      if (lp) lp.frequency.value = 1200;
+      if (notch){
+        notch.frequency.value = 2600;
+        notch.Q.value = 8;
+        notch.gain.value = -18;
+      }
+      if (limiter){
+        limiter.threshold.value = -12;
+        limiter.knee.value = 8;
+        limiter.ratio.value = 10;
+        limiter.attack.value = 0.003;
+        limiter.release.value = 0.25;
+      }
+    }
+  }
+
+  function disconnectSafe(node){
+    try{ node.disconnect(); }catch(e){}
+  }
+
+  function rebuildRouting(){
+    if (!ctx) return;
+
+    // Clear previous output wiring
+    if (hp) disconnectSafe(hp);
+    if (notch) disconnectSafe(notch);
+    if (lp) disconnectSafe(lp);
+    if (limiter) disconnectSafe(limiter);
+    disconnectSafe(outGainNode);
+
+    let last = punchEQ;
+
+    if (ui.safeEq.value === "on"){
+      hp = ctx.createBiquadFilter(); hp.type = "highpass";
+      notch = ctx.createBiquadFilter(); notch.type = "peaking";
+      lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+      limiter = ctx.createDynamicsCompressor();
+
+      last.connect(hp); last = hp;
+      last.connect(notch); last = notch;
+      last.connect(lp); last = lp;
+      last.connect(limiter); last = limiter;
+
+      applyAudioParams();
+      last.connect(outGainNode);
+    } else {
+      hp = lp = notch = limiter = null;
+      punchEQ.connect(outGainNode);
+    }
+
+    // Destination rules
+    if (ui.mode.value === "live"){
+      outGainNode.connect(ctx.destination);
+      ui.recText.textContent = "Detector: running";
+      setDot(ui.recDot, "on");
+    } else {
+      // Bites mode: default OFF for live monitoring to avoid feedback
+      if (ui.monitorBites.value === "on"){
+        outGainNode.connect(ctx.destination);
+      }
+      ui.recText.textContent = "Detector: armed";
+      setDot(ui.recDot, "on");
+    }
+  }
+
+  // ---------- Recorder ----------
+  function setupRecorder(){
+    try{
+      recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: 128000 });
+    }catch(e){
+      recorder = new MediaRecorder(stream);
+    }
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      if (!chunks.length) return;
+      const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+      chunks = [];
+
+      if (blob.size < 2000){
+        return;
+      }
+
+      queue.push(blob);
+      updateQueueCount();
+      pumpPlaybackQueue();
+    };
+  }
+
+  function startRecording(){
+    if (!recorder || recorder.state !== "inactive") return;
+    chunks = [];
+    recorder.start();
+    isRecording = true;
+    recStartMs = performance.now();
+    setDot(ui.recDot, "rec");
+    ui.recText.textContent = "Detector: recording bite…";
+  }
+
+  function stopRecording(){
+    if (!recorder || recorder.state === "inactive") return;
+    recorder.stop();
+    isRecording = false;
+    setDot(ui.recDot, "on");
+    ui.recText.textContent = "Detector: armed";
+  }
+
+  // Playback queue (sound bites)
+  async function pumpPlaybackQueue(){
+    if (isPlaying) return;
+    if (!queue.length) return;
+
+    isPlaying = true;
+    const gapMs = currentGapMs();
+
+    const blob = queue.shift();
+    updateQueueCount();
+
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.volume = Math.min(1, (+ui.outGain.value / 1.5));
+
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        isPlaying = false;
+        pumpPlaybackQueue();
+      }, gapMs);
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      isPlaying = false;
+      pumpPlaybackQueue();
+    };
+
+    try{
+      await audio.play();
+    }catch(e){
+      log("Autoplay blocked; click anywhere then try again.");
+      isPlaying = false;
+    }
+  }
+
+  // ---------- SFX ----------
+  function shouldLockout(){ return ui.lockout.value === "on"; }
+
+  ui.sfxFile.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file){
+      sfxBuffer = null;
+      ui.sfxStatus.textContent = "No SFX loaded.";
+      ui.goofyBtn.disabled = true;
+      return;
+    }
+    if (!ctx){
+      ui.sfxStatus.textContent = "Load SFX after Start (needs AudioContext).";
+      ui.goofyBtn.disabled = true;
+      log("Tip: Click Start first, then load SFX.");
+      return;
+    }
+    try{
+      const arr = await file.arrayBuffer();
+      const decoded = await ctx.decodeAudioData(arr.slice(0));
+      sfxBuffer = decoded;
+      ui.sfxStatus.innerHTML = `<span class="ok">Loaded:</span> ${file.name} (${decoded.duration.toFixed(2)}s)`;
+      ui.goofyBtn.disabled = false;
+      log(`SFX loaded. Plays first ${(+ui.sfxLen.value).toFixed(1)}s.`);
+    }catch(err){
+      sfxBuffer = null;
+      ui.sfxStatus.textContent = "Failed to decode audio.";
+      ui.goofyBtn.disabled = true;
+      log("ERROR decoding SFX file.");
+    }
+  });
+
+  function primeSfxIfLoaded(){
+    // no-op placeholder; kept for future expansion
+  }
+
+  function playSfx(){
+    if (!ctx || !sfxBuffer) return;
+
+    const nowMs = performance.now();
+    const cooldownMs = Math.max(500, (+ui.sfxCooldown.value || 10) * 1000);
+    if (nowMs - sfxLastFire < cooldownMs) return;
+    sfxLastFire = nowMs;
+
+    const len = Math.max(0.2, Math.min(+ui.sfxLen.value || 3.0, sfxBuffer.duration));
+    const src = ctx.createBufferSource();
+    src.buffer = sfxBuffer;
+
+    const g = ctx.createGain();
+    g.gain.value = Math.min(1.0, (+ui.outGain.value / 1.5));
+
+    if (shouldLockout()){
+      sfxCurrentlyPlaying = true;
+    }
+
+    src.connect(g).connect(ctx.destination);
+    src.start();
+    src.stop(ctx.currentTime + len);
+
+    src.onended = () => {
+      try{ src.disconnect(); g.disconnect(); }catch(e){}
+      if (shouldLockout()){
+        sfxCurrentlyPlaying = false;
+      }
+    };
+  }
+
+  ui.goofyBtn.addEventListener("click", () => playSfx());
+
+  // ---------- Detection loop ----------
+  function startDetectorLoop(){
+    if (!ctx || !analyser || !freqAnalyser) return;
+
+    const timeBuf = new Float32Array(analyser.fftSize);
+    const freqBuf = new Uint8Array(freqAnalyser.frequencyBinCount);
+
+    setDot(ui.recDot, "on");
+    ui.recText.textContent = ui.mode.value === "bites" ? "Detector: armed" : "Detector: running";
+
+    detectorTimer = setInterval(() => {
+      analyser.getFloatTimeDomainData(timeBuf);
+      let sum = 0;
+      for (let i = 0; i < timeBuf.length; i++){
+        const v = timeBuf[i];
+        sum += v*v;
+      }
+      const rms = Math.sqrt(sum / timeBuf.length);
+
+      freqAnalyser.getByteFrequencyData(freqBuf);
+      const nyquist = ctx.sampleRate / 2;
+      const binHz = nyquist / freqBuf.length;
+
+      const lowMin = 20;
+      const lowMax = 140;
+      const i0 = Math.max(0, Math.floor(lowMin / binHz));
+      const i1 = Math.min(freqBuf.length - 1, Math.ceil(lowMax / binHz));
+
+      let lowSum = 0;
+      for (let i = i0; i <= i1; i++){ lowSum += freqBuf[i]; }
+      const lowAvg = lowSum / Math.max(1, (i1 - i0 + 1));
+
+      lastRms = lastRms * 0.75 + rms * 0.25;
+      lastLow = lastLow * 0.75 + lowAvg * 0.25;
+
+      ui.levelFill.style.width = `${Math.min(100, lastRms * 260)}%`;
+      ui.lowFill.style.width = `${Math.min(100, (lastLow / 255) * 140)}%`;
+
+      const lockoutActive = sfxCurrentlyPlaying && shouldLockout();
+
+      // Optional SFX trigger
+      if (!lockoutActive && ui.sfxMode.value === "trigger" && sfxBuffer){
+        const thresh = +ui.thresh.value;
+        const lowTrigger = 38 + (thresh * 220);
+        const hotSfx = (rms >= (thresh * 1.15)) || (lowAvg >= lowTrigger);
+        if (hotSfx) playSfx();
+      }
+
+      // Sound Bites mode
+      if (ui.mode.value === "bites"){
+        if (lockoutActive) return;
+
+        const thresh = +ui.thresh.value;
+        const silenceStopMs = +ui.silenceMs.value;
+        const maxClipMs = currentMaxClipMs();
+
+        const lowTrigger = 28 + (thresh * 220);
+        const hot = (rms >= thresh) || (lowAvg >= lowTrigger);
+
+        const now = performance.now();
+
+        if (hot){
+          lastHotMs = now;
+          lastHotFlag = true;
+          if (!isRecording){
+            startRecording();
+          }
+        }
+
+        if (isRecording){
+          const elapsed = now - recStartMs;
+          const sinceHot = now - lastHotMs;
+
+          // Stop if silence long enough
+          if (sinceHot >= silenceStopMs){
+            stopRecording();
+            lastHotFlag = false;
+            return;
+          }
+
+          // Stop if max clip reached
+          if (elapsed >= maxClipMs){
+            stopRecording();
+
+            // Sustained chopping: if it's still "hot", restart quickly to keep it reactive
+            if (ui.chop.value === "on" && hot){
+              setTimeout(() => {
+                if (recorder && recorder.state === "inactive"){
+                  startRecording();
+                }
+              }, 20);
+            }
+            return;
+          }
+        }
+      }
+    }, 45);
+  }
+
+  // ---------- UI events ----------
+  ui.startBtn.addEventListener("click", start);
+  ui.stopBtn.addEventListener("click", stop);
+  ui.clearBtn.addEventListener("click", () => { queue.length = 0; updateQueueCount(); log("Queue cleared."); });
+
+  ui.themeBtn.addEventListener("click", () => {
+    const root = document.body;
+    const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+  });
+
+  ui.testBeepBtn.addEventListener("click", async () => {
+    try{
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      g.gain.value = 0.0001;
+      o.frequency.value = 220;
+      o.connect(g).connect(ac.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.2);
+      o.stop(ac.currentTime + 0.22);
+      setTimeout(()=>ac.close(), 350);
+      log("Test beep played.");
+    }catch(e){
+      log("Could not play test beep.");
+    }
+  });
+
+  function wireParam(el){
+    el.addEventListener("input", () => { syncLabels(); applyAudioParams(); });
+    el.addEventListener("change", () => { syncLabels(); applyAudioParams(); });
+  }
+  ["outGain","inGain","rumble","punch","thresh","silenceMs"].forEach(k => wireParam(ui[k]));
+
+  ui.safeEq.addEventListener("change", () => { if (ctx) rebuildRouting(); log(`Speaker-safe EQ: ${ui.safeEq.value}`); });
+  ui.mode.addEventListener("change", () => { if (ctx) rebuildRouting(); log(`Mode: ${ui.mode.value}`); });
+  ui.monitorBites.addEventListener("change", () => { if (ctx) rebuildRouting(); log(`Monitor in bites: ${ui.monitorBites.value}`); });
+
+  // These affect behavior but don't need audio rebuild
+  ["gapVal","gapUnit","clipVal","clipUnit","chop"].forEach(k => {
+    ui[k].addEventListener("change", () => {
+      log(`Bites tuned → clip=${currentMaxClipMs()}ms, gap=${currentGapMs()}ms, chop=${ui.chop.value}`);
+    });
+  });
+
+  updateQueueCount();
+  log("Ready. Click Start.");
+})();
+</script>
+</body>
+</html>
