@@ -667,9 +667,11 @@ function unlockAudio(ctx){
         return;
       }
 
+      queue.length = 0;
       queue.push(blob);
       updateQueueCount();
       pumpPlaybackQueue();
+
     };
   }
 
@@ -948,3 +950,4 @@ function unlockAudio(ctx){
 </script>
 </body>
 </html>
+
