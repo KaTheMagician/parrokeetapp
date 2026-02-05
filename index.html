@@ -366,11 +366,12 @@ async function unlockAudio(ctx){
   }
 }
 
-// Tap-anywhere unlock + auto-retry
-document.addEventListener("pointerdown", () => {
-  if (!audioUnlocked && window.__parrotCtx) {
-    unlockAudio(window.__parrotCtx);
-  } else if (pendingAutoplayRetry) {
+// Tap-anywhere unlock + auto-retry (unlock first, then retry)
+document.addEventListener("pointerdown", async () => {
+  if (window.__parrotCtx) {
+    await unlockAudio(window.__parrotCtx);
+  }
+  if (pendingAutoplayRetry) {
     pendingAutoplayRetry = false;
     try { pumpPlaybackQueue(); } catch(e) {}
   }
@@ -1006,4 +1007,5 @@ document.addEventListener("pointerdown", () => {
 </script>
 </body>
 </html>
+
 
