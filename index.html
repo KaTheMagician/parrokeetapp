@@ -329,13 +329,52 @@
   </div>
 
 <script>
-function unlockAudio(ctx){
-  const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(ctx.destination);
-  source.start(0);
+let audioUnlocked = false;
+let pendingAutoplayRetry = false;
+let loggedAutoplayOnce = false;
+
+// tiny silent wav (valid audio)
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+
+async function unlockAudio(ctx){
+  try{
+    // 1) Resume WebAudio
+    if (ctx && ctx.state === "suspended") {
+      await ctx.resume();
+    }
+
+    // 2) Prime HTMLAudio permission (this is what Sound Bites uses)
+    const a = new Audio(SILENT_WAV);
+    a.muted = true;
+    a.playsInline = true;
+    await a.play();
+    a.pause();
+    a.currentTime = 0;
+
+    audioUnlocked = true;
+
+    // If we were blocked earlier, retry playback immediately
+    if (pendingAutoplayRetry) {
+      pendingAutoplayRetry = false;
+      setTimeout(() => {
+        try { pumpPlaybackQueue(); } catch(e) {}
+      }, 0);
+    }
+  }catch(e){
+    // If it fails here, we'll unlock on the next user tap
+  }
 }
+
+// Tap-anywhere unlock + auto-retry
+document.addEventListener("pointerdown", () => {
+  if (!audioUnlocked && window.__parrotCtx) {
+    unlockAudio(window.__parrotCtx);
+  } else if (pendingAutoplayRetry) {
+    pendingAutoplayRetry = false;
+    try { pumpPlaybackQueue(); } catch(e) {}
+  }
+}, { passive: true });
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -472,6 +511,10 @@ function unlockAudio(ctx){
     try{
       if (ctx) return;
 
+      audioUnlocked = false;
+      pendingAutoplayRetry = false;
+
+
       log("Requesting microphone…");
       setDot(ui.micDot, "off");
       ui.micText.textContent = "Mic: requesting…";
@@ -486,7 +529,9 @@ function unlockAudio(ctx){
       });
 
       ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
-      unlockAudio(ctx); // ← ADD THIS LINE
+      window.__parrotCtx = ctx;
+      unlockAudio(ctx);
+
 
       source = ctx.createMediaStreamSource(stream);
 
@@ -724,9 +769,20 @@ function unlockAudio(ctx){
     try{
       await audio.play();
     }catch(e){
-      log("Autoplay blocked; click anywhere then try again.");
-      isPlaying = false;
-    }
+  // Safari/iOS blocks play() unless it considers it user-initiated.
+  pendingAutoplayRetry = true;
+  isPlaying = false;
+
+  if (!loggedAutoplayOnce){
+    loggedAutoplayOnce = true;
+    log("Autoplay blocked. Tap anywhere once to unlock—then it will keep working.");
+  }
+
+  // Try to unlock immediately (might succeed since Start was a gesture)
+  if (window.__parrotCtx){
+    unlockAudio(window.__parrotCtx);
+  }
+}
   }
 
   // ---------- SFX ----------
@@ -950,3 +1006,4 @@ function unlockAudio(ctx){
 </script>
 </body>
 </html>
+
