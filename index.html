@@ -329,6 +329,14 @@
   </div>
 
 <script>
+function unlockAudio(ctx){
+  const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+  source.start(0);
+}
+
 (() => {
   const $ = (id) => document.getElementById(id);
 
@@ -478,6 +486,8 @@
       });
 
       ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
+      unlockAudio(ctx); // ← ADD THIS LINE
+
       source = ctx.createMediaStreamSource(stream);
 
       inGainNode = ctx.createGain();
