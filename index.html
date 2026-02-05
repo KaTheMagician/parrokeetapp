@@ -770,20 +770,20 @@ document.addEventListener("pointerdown", async () => {
     try{
       await audio.play();
     }catch(e){
-  // Safari/iOS blocks play() unless it considers it user-initiated.
-  pendingAutoplayRetry = true;
-  isPlaying = false;
-
-  if (!loggedAutoplayOnce){
-    loggedAutoplayOnce = true;
-    log("Autoplay blocked. Tap anywhere once to unlock—then it will keep working.");
-  }
-
-  // Try to unlock immediately (might succeed since Start was a gesture)
-  if (window.__parrotCtx){
-    unlockAudio(window.__parrotCtx);
-  }
-}
+      // Safari/iOS blocks play() unless it considers it user-initiated.
+      pendingAutoplayRetry = true;
+      isPlaying = false;
+    
+      if (!loggedAutoplayOnce){
+        loggedAutoplayOnce = true;
+        log("Autoplay blocked. Tap anywhere once to unlock—then it will keep working.");
+      }
+    
+      // Try to unlock immediately (might succeed since Start was a gesture)
+      if (window.__parrotCtx){
+        unlockAudio(window.__parrotCtx);
+      }
+    }
   }
 
   // ---------- SFX ----------
@@ -1007,5 +1007,6 @@ document.addEventListener("pointerdown", async () => {
 </script>
 </body>
 </html>
+
 
 
